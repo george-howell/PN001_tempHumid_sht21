@@ -102,6 +102,7 @@ void usage(char * progname)
 	std::cout << std::endl;
     std::cout << "Usage: " << progname << " readtemp [-options1]\n";
     std::cout << "Usage: " << progname << " readrh [-options1]\n";
+    std::cout << "Usage: " << progname << " readall [-options1]\n";
     std::cout << "Usage: " << progname << " readuser\n";
     std::cout << "Usage: " << progname << " writeuser [-options2]\n";
     std::cout << "Usage: " << progname << " reset\n";
@@ -336,6 +337,8 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 	} else if (!strcmp(argv[1], "reset")) {
 		*i2cArgs->subAddr = RESET_ADDR;
 		i2cArgs->op = RESET;
+	} else if (!strcmp(argv[1], "usage")) {
+		usage(argv[0]);
 	} else {
 		std::cerr << "ERROR: invalid operation\n";
 		usage(argv[0]);
