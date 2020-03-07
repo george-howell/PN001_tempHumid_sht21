@@ -357,10 +357,10 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 		if (argc>2) {
 			if (!strcmp(argv[2], "-nhm")) {
 				i2cArgs->nhm = true;
-				if (!strcmp(argv[1], "readtemp")) {
-					*i2cArgs->subAddr = T_TEMP_NHM;
-				} else {
+				if (!strcmp(argv[1], "readrh")) {
 					*i2cArgs->subAddr = T_RH_NHM;
+				} else {
+					*i2cArgs->subAddr = T_TEMP_NHM;
 				}
 			} else if (!strcmp(argv[2], "-c")) {
 				i2cArgs->cont = true;
@@ -373,10 +373,10 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 		if (argc>3) {
 			if (!strcmp(argv[3], "-nhm")) {
 				i2cArgs->nhm = true;
-				if (!strcmp(argv[1], "readtemp")) {
-					*i2cArgs->subAddr = T_TEMP_NHM;
-				} else {
+				if (!strcmp(argv[1], "readrh")) {
 					*i2cArgs->subAddr = T_RH_NHM;
+				} else {
+					*i2cArgs->subAddr = T_TEMP_NHM;
 				}
 			} else if (!strcmp(argv[3], "-c")) {
 				i2cArgs->cont = true;
