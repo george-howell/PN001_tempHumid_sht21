@@ -253,10 +253,16 @@ void writeData (uint8_t devAddr, uint8_t * wrData, int numWrBytes) {
 		std::cerr << "ERROR: i2c write failed" << std::endl;
 	}
 
+	std::this_thread::sleep_for (std::chrono::milliseconds(10));
+
 }
 
 // read data
-uint8_t * readData (int numRdBytes) {
+uint8_t * readData (int numRdBytes, bool nhm) {
+
+	if (nhm) {
+		std::this_thread::sleep_for (std::chrono::milliseconds(100));
+	}
 
 	uint8_t * tmpData;
 	tmpData = (uint8_t*) malloc(sizeof(uint8_t) * numRdBytes);
@@ -454,7 +460,7 @@ int main (int argc, char ** argv) {
 
 				// temp measurement
 				writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
-				i2cArgs->outData = readData(i2cArgs->numRdBytes);
+				i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 				fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
 				if (!strcmp(argv[1], "readall")) {
@@ -473,7 +479,7 @@ int main (int argc, char ** argv) {
 
 					// rh measurement
 					writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
-					i2cArgs->outData = readData(i2cArgs->numRdBytes);
+					i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 					fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
 					// set sub address back to temp, no hold master if true
@@ -504,7 +510,7 @@ int main (int argc, char ** argv) {
 			writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
 
 			// read user data register
-			i2cArgs->outData = readData(i2cArgs->numRdBytes);
+			i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 
 			// format and display output
 			fmtUserData(i2cArgs->outData);
@@ -515,7 +521,7 @@ int main (int argc, char ** argv) {
 			// toggle read user data and read current value
 			*tmpSubAddr = R_USER;
 			writeData(i2cArgs->devAddr, tmpSubAddr, 1);
-			i2cArgs->outData = readData(i2cArgs->numRdBytes);
+			i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 
 			// merge current user data and write data
 			newUsrData = mergeData(i2cArgs->outData, i2cArgs->wData, i2cArgs->subOp);
