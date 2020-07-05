@@ -460,6 +460,10 @@ int main (int argc, char ** argv) {
 
 				// temp measurement
 				writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+				if (i2cArgs->nhm) {
+					// nhm delay
+					std::this_thread::sleep_for (std::chrono::milliseconds(100));
+				}
 				i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 				fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
@@ -479,6 +483,10 @@ int main (int argc, char ** argv) {
 
 					// rh measurement
 					writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+					if (i2cArgs->nhm) {
+						// nhm delay
+						std::this_thread::sleep_for (std::chrono::milliseconds(100));
+					}
 					i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 					fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
