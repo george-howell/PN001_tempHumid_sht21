@@ -50,16 +50,16 @@
 #include <string.h>
 #include <time.h>
 
-const int BUS_ADDR = 1;
-const int NB_READ = 3;
-const uint8_t DEV_ADDR  = 0x40;
-const uint8_t T_TEMP = 0xE3;
-const uint8_t T_RH = 0xE5;
-const uint8_t T_TEMP_NHM = 0xF3;
-const uint8_t T_RH_NHM = 0xF5;
-const uint8_t R_USER = 0xE7;
-const uint8_t W_USER = 0xE6;
-const uint8_t RESET_ADDR = 0xFE;
+#define BUS_ADDR 		1
+#define NB_READ 		3
+#define DEV_ADDR 		0x40
+#define T_TEMP 			0xE3
+#define T_RH 			0xE5
+#define T_TEMP_NHM 		0xF3
+#define T_RH_NHM 		0xF5
+#define R_USER 			0xE7
+#define W_USER 			0xE6
+#define RESET_ADDR 		0xFE
 
 // i2c linux device handle
 int g_i2cFile;
