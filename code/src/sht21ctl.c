@@ -162,13 +162,13 @@ void fmtDispData (uint8_t * data, enum measType meas) {
 	    fmtData = -46.85+175.72*((double)data16/65536);
 
 	    // print output
-	    printf("Temp [degC]: %f", fmtData);
+	    printf("Temp [degC]: %.1f", fmtData);
 	} else {
 		// convert to temp data
 	    fmtData = -6+125*((double)data16/65536);
 
 	    // print output
-	    printf("Humid [%]: %f", fmtData);
+	    printf("Humid [%]: %.1f", fmtData);
 	}
 
 }
