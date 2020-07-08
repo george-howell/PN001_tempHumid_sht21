@@ -1,4 +1,4 @@
-// SHT21CTL.CPP ============================================ //
+// SHT21CTL.C ============================================== //
 //
 // Simple program that provides a number of functions for 
 // reading the temperature and humiditiy from a SHT-21 sensor,
@@ -36,66 +36,7 @@
 //
 // ========================================================= //
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <linux/i2c-dev.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <time.h>
-
-#define BUS_ADDR 		1
-#define NB_READ 		3
-#define DEV_ADDR 		0x40
-#define T_TEMP 			0xE3
-#define T_RH 			0xE5
-#define T_TEMP_NHM 		0xF3
-#define T_RH_NHM 		0xF5
-#define R_USER 			0xE7
-#define W_USER 			0xE6
-#define RESET_ADDR 		0xFE
-
-// i2c linux device handle
-int g_i2cFile;
-
-enum opType {
-	MEAS,
-	RUSER,
-	WUSER,
-	RESET
-};
-
-enum measType {
-	TEMP,
-	RH
-};
-
-enum subOpType {
-	RES_OP,
-	HEAT_OP,
-	OTP_OP
-};
-
-typedef struct _arg {
-	enum opType op;
-	enum subOpType subOp;
-	enum measType meas;
-	int bus;
-	int numRdBytes;
-	int numWrBytes;
-	bool nhm;
-	bool cont;
-	uint8_t wData;
-	uint8_t devAddr;
-	uint8_t * subAddr;
-	uint8_t * outData;
-} i2cArgs_s;
+#include "sht21ctl.h"
 
 // usage statement
 void usage(char * progname)
@@ -124,29 +65,6 @@ void usage(char * progname)
     exit(EXIT_FAILURE);
 }
 
-// open the i2c device
-void i2cOpen(int bus)
-{	
-	// create char array argument
-	char buf[32];
-	snprintf(buf, 32, "/dev/i2c-%d", bus);
-
-	// open i2c bus
-	g_i2cFile = open(buf, O_RDWR);
-
-	// error check if i2c bus is open
- 	if (g_i2cFile < 0) {
- 		fprintf(stderr, "ERROR: failed to open i2c bus %d", bus);
-		exit(1);
-	}
-}
-
-// close the i2c device
-void i2cClose()
-{
-	close(g_i2cFile);
-}
-
 // format and display the data
 void fmtDispData (uint8_t * data, enum measType meas) {
 
@@ -162,13 +80,13 @@ void fmtDispData (uint8_t * data, enum measType meas) {
 	    fmtData = -46.85+175.72*((double)data16/65536);
 
 	    // print output
-	    printf("Temp [degC]: %.1f", fmtData);
+	    printf("Temp [degC]: %.1f; ", fmtData);
 	} else {
 		// convert to temp data
 	    fmtData = -6+125*((double)data16/65536);
 
 	    // print output
-	    printf("Humid [%]: %.1f", fmtData);
+	    printf("Humid [%]: %.1f; ", fmtData);
 	}
 
 }
@@ -250,42 +168,6 @@ void fmtUserData (uint8_t * userData) {
 	printf("Src Voltage : %s\n", battDisp);
 	printf("Chip Heater : %s\n", heatDisp);
 	printf("OTP Reload  : %s\n", otpDisp);
-
-}
-
-// write data
-void writeData (uint8_t devAddr, uint8_t * wrData, int numWrBytes) {
-
-	// sets the device address
-	if (ioctl(g_i2cFile, I2C_SLAVE, devAddr) < 0) {
-		fprintf(stderr,"ERROR: failed to set the i2c address 0x%02x\n", devAddr);
-		exit(1);
-	}
-
-	// writes to the command address
-	if (write(g_i2cFile, wrData, numWrBytes) != numWrBytes) {
-		fprintf(stderr,"ERROR: i2c write failed\n");
-	}
-
-}
-
-// read data
-uint8_t * readData (int numRdBytes, bool nhm) {
-
-	uint8_t * tmpData;
-	tmpData = (uint8_t*) malloc(sizeof(uint8_t) * numRdBytes);
-	if (!tmpData) {
-		fprintf(stderr,"ERROR: Failed to allocate output data buffer\n");
-		exit(1);
-	}
-
-    // read bytes of data from i2c bus
-    if (read(g_i2cFile, tmpData, numRdBytes) != numRdBytes) {
-    	fprintf(stderr,"ERROR: Failed to read i2c data\n");
-        exit(1);
-    }
-
-	return tmpData;
 
 }
 
@@ -480,9 +362,9 @@ int main (int argc, char ** argv) {
 			while (loopMeas) {
 
 				// temp measurement
-				writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+				i2cWrite(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
 				sleepMillisec(0,100);
-				i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
+				i2cArgs->outData = i2cRead(i2cArgs->numRdBytes);
 				fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
 				if (!strcmp(argv[1], "readall")) {
@@ -500,9 +382,9 @@ int main (int argc, char ** argv) {
 					sleepMillisec(0,100);
 
 					// rh measurement
-					writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+					i2cWrite(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
 					sleepMillisec(0,100);
-					i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
+					i2cArgs->outData = i2cRead(i2cArgs->numRdBytes);
 					fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
 					// set sub address back to temp, no hold master if true
@@ -530,10 +412,10 @@ int main (int argc, char ** argv) {
 
 		case RUSER:
 			// toggle read user register
-			writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+			i2cWrite(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
 
 			// read user data register
-			i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
+			i2cArgs->outData = i2cRead(i2cArgs->numRdBytes);
 
 			// format and display output
 			fmtUserData(i2cArgs->outData);
@@ -543,8 +425,8 @@ int main (int argc, char ** argv) {
 		case WUSER:
 			// toggle read user data and read current value
 			*tmpSubAddr = R_USER;
-			writeData(i2cArgs->devAddr, tmpSubAddr, 1);
-			i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
+			i2cWrite(i2cArgs->devAddr, tmpSubAddr, 1);
+			i2cArgs->outData = i2cRead(i2cArgs->numRdBytes);
 
 			// merge current user data and write data
 			newUsrData = mergeData(i2cArgs->outData, i2cArgs->wData, i2cArgs->subOp);
@@ -554,13 +436,13 @@ int main (int argc, char ** argv) {
 			*(fullData+1) = newUsrData;
 
 			// toggle user register, then write new value
-			writeData(i2cArgs->devAddr, fullData, i2cArgs->numWrBytes);
+			i2cWrite(i2cArgs->devAddr, fullData, i2cArgs->numWrBytes);
 
 			break;
 
 		case RESET:
 			// toggle reset register
-			writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+			i2cWrite(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
 
 			// delay
 			sleepMillisec(0,500);
