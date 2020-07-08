@@ -36,11 +36,11 @@
 //
 // ========================================================= //
 
-#include <iostream>
-#include <iomanip>
-#include <thread>         // std::this_thread::sleep_for
-#include <chrono>         // std::chrono::seconds
-#include <string>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <unistd.h>
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -49,16 +49,16 @@
 #include <unistd.h>
 #include <string.h>
 
-const int BUS_ADDR {1};
-const int NB_READ {3};
-const uint8_t DEV_ADDR {0x40};
-const uint8_t T_TEMP {0xE3};
-const uint8_t T_RH {0xE5};
-const uint8_t T_TEMP_NHM {0xF3};
-const uint8_t T_RH_NHM {0xF5};
-const uint8_t R_USER {0xE7};
-const uint8_t W_USER {0xE6};
-const uint8_t RESET_ADDR {0xFE};
+const int BUS_ADDR = 1;
+const int NB_READ = 3;
+const uint8_t DEV_ADDR  = 0x40;
+const uint8_t T_TEMP = 0xE3;
+const uint8_t T_RH = 0xE5;
+const uint8_t T_TEMP_NHM = 0xF3;
+const uint8_t T_RH_NHM = 0xF5;
+const uint8_t R_USER = 0xE7;
+const uint8_t W_USER = 0xE6;
+const uint8_t RESET_ADDR = 0xFE;
 
 // i2c linux device handle
 int g_i2cFile;
@@ -99,28 +99,26 @@ typedef struct _arg {
 // usage statement
 void usage(char * progname)
 {	
-	std::cout << std::endl;
-    std::cout << "Usage: " << progname << " readtemp [-options1]\n";
-    std::cout << "Usage: " << progname << " readrh [-options1]\n";
-    std::cout << "Usage: " << progname << " readall [-options1]\n";
-    std::cout << "Usage: " << progname << " readuser\n";
-    std::cout << "Usage: " << progname << " writeuser [-options2]\n";
-    std::cout << "Usage: " << progname << " reset\n";
-    std::cout << std::endl;
-    std::cout << "[-options1]" << " [-nhm] -> 'no holds master' mode\n";
-    std::cout << "           " << " [-c]   -> continuous reading mode\n";
-    std::cout << "[-options2]" << " [-res mode]  -> resolution of measurement\n";
-    std::cout << "           " << "         	    -> 1 = rh 12-bit & temp 14 bit (default)\n";
-    std::cout << "           " << "         	    -> 2 = rh 8-bit & temp 12 bit\n";
-    std::cout << "           " << "                 -> 3 = rh 10-bit & temp 13 bit\n";
-    std::cout << "           " << "         	    -> 4 = rh 11-bit & temp 11 bit\n";
-    std::cout << "           " << " [-heat mode] -> on-chip heater\n";
-    std::cout << "           " << "         	    -> on  = enables heater\n";
-    std::cout << "           " << "         	    -> off = disables heater (default)\n";
-    std::cout << "           " << " [-otp mode]  -> otp reload\n";
-    std::cout << "           " << "         	    -> on  = enables opt\n";
-    std::cout << "           " << "         	    -> off = disables otp (default)\n";
-    std::cout << std::endl;
+	printf("Usage: %s  readtemp [-options1]\n", progname);
+	printf("Usage: %s  readrh [-options1]\n", progname);
+	printf("Usage: %s  readall [-options1]\n", progname);
+	printf("Usage: %s  readuser\n", progname);
+	printf("Usage: %s  writeuser [-options2]\n", progname);
+	printf("Usage: %s  reset\n\n", progname);
+
+	printf("[-options1]   [-nhm] -> 'no holds master' mode\n");
+	printf("              [-c]   -> continuous reading mode\n");
+	printf("[-options2]   [-res mode] -> resolution of measurement\n");
+	printf("                             -> 1 = rh 12-bit & temp 14 bit (default)\n");
+	printf("                             -> 2 = rh 8-bit & temp 12 bit\n");
+	printf("                             -> 3 = rh 10-bit & temp 13 bit\n");
+	printf("                             -> 4 = rh 11-bit & temp 11 bit\n");
+	printf("              [-heat mode] -> on-chip heater\n");
+	printf("                             -> on  = enables heater\n");
+	printf("                             -> off = disables heater (default)\n");
+	printf("              [-otp mode]  -> otp reload\n");
+	printf("                             -> on  = enables opt\n");
+	printf("                             -> off = disables otp (default)\n\n");
 
     exit(EXIT_FAILURE);
 }
@@ -137,7 +135,7 @@ void i2cOpen(int bus)
 
 	// error check if i2c bus is open
  	if (g_i2cFile < 0) {
- 		std::cerr << "ERROR: failed to open i2c bus " << bus << std::endl;
+ 		fprintf(stderr, "ERROR: failed to open i2c bus %d", bus);
 		exit(1);
 	}
 }
@@ -149,36 +147,35 @@ void i2cClose()
 }
 
 // format and display the data
-void fmtDispData (uint8_t * data, measType meas) {
+void fmtDispData (uint8_t * data, enum measType meas) {
 
 	// assign both 8-bit data bytes to single 16-bit value
-	uint16_t data16 {};
+	uint16_t data16;
 	data16 = data[0] << 8;
 	data16 |= data[1];
 
-	double fmtData {};
+	double fmtData;
 
 	if (meas == TEMP) {
 		// convert to temp data
-	    fmtData = -46.85+175.72*(static_cast<double>(data16)/65536);
+	    fmtData = -46.85+175.72*((double)data16/65536);
 
 	    // print output
-	    std::cout << "Temp [degC]: " << fmtData << " ";
+	    printf("Temp [degC]: %f", fmtData);
 	} else {
 		// convert to temp data
-	    double fmtData {};
-	    fmtData = -6+125*(static_cast<double>(data16)/65536);
+	    fmtData = -6+125*((double)data16/65536);
 
 	    // print output
-	    std::cout << "Humid [%]: " << fmtData << " ";
+	    printf("Humid [%]: %f", fmtData);
 	}
 
 }
 
 // merge current user data and new values for write user operation
-uint8_t mergeData(uint8_t * currData, uint8_t newData, subOpType subOp) {
+uint8_t mergeData(uint8_t * currData, uint8_t newData, enum subOpType subOp) {
 
-	int res, heat, otp {};
+	int res, heat, otp;
 
 	if (subOp==RES_OP) {
 		res = *currData & ~0x81;
@@ -200,42 +197,58 @@ uint8_t mergeData(uint8_t * currData, uint8_t newData, subOpType subOp) {
 // format read user data
 void fmtUserData (uint8_t * userData) {
 
-	int res, batt, heat, otp {};
+	int res, batt, heat, otp;
 
 	res = *userData & 0x81;
 	batt = *userData & 0x40;
 	heat = *userData & 0x4;
 	otp = *userData & 0x2;
 
-	char resDisp [36] {};
-	char battDisp [14] {};
-	char heatDisp [20] {};
-	char otpDisp [20] {};
+	char resDisp [36];
+	char battDisp [14];
+	char heatDisp [20];
+	char otpDisp [20];
 
-	if (!res) {strcpy(resDisp,"RH: 12-bit & Temp: 14-bit (Default)");}
-	else if (res==1) {strcpy(resDisp,"RH: 8-bit & Temp: 12-bit");}
-	else if (res==0x80) {strcpy(resDisp,"RH: 10-bit & Temp: 13-bit");}
-	else {strcpy(resDisp,"RH: 11-bit & Temp: 11-bit");}
+	if (!res) {
+		strcpy(resDisp,"RH: 12-bit & Temp: 14-bit (Default)");
+	}
+	else if (res==1) {
+		strcpy(resDisp,"RH: 8-bit & Temp: 12-bit");
+	}
+	else if (res==0x80) {
+		strcpy(resDisp,"RH: 10-bit & Temp: 13-bit");
+	}
+	else {
+		strcpy(resDisp,"RH: 11-bit & Temp: 11-bit");
+	}
 
-	if (!batt) {strcpy(battDisp,"Good (>2.5V)");} 
-	else {strcpy(battDisp,"Low (<2.5V)");}
+	if (!batt) {
+		strcpy(battDisp,"Good (>2.5V)");
+	} 
+	else {
+		strcpy(battDisp,"Low (<2.5V)");
+	}
 
-	if (!heat) {strcpy(heatDisp,"Disabled (Default)");} 
-	else {strcpy(heatDisp,"Enabled");}
+	if (!heat) {
+		strcpy(heatDisp,"Disabled (Default)");
+	} 
+	else {
+		strcpy(heatDisp,"Enabled");
+	}
 
-	if (!otp) {strcpy(otpDisp,"Enabled");} 
-	else {strcpy(otpDisp,"Disabled  (Default)");}
+	if (!otp) {
+		strcpy(otpDisp,"Enabled");
+	} 
+	else {
+		strcpy(otpDisp,"Disabled  (Default)");
+	}
 
 	// display output
-	std::cout << std::showbase // show the 0x prefix
- 	  		  << std::internal // fill between the prefix and the number
- 	  		  << std::setfill('0'); // fill with 0s
-
-	std::cout << "User Reg    : " << std::hex << std::setw(4) << unsigned(*userData) << std::endl;
-	std::cout << "Resolution  : " << resDisp << std::endl;
-	std::cout << "Src Voltage : " << battDisp << std::endl;
-	std::cout << "Chip Heater : " << heatDisp << std::endl;
-	std::cout << "OTP Reload  : " << otpDisp << std::endl;
+	printf("User Reg    : 0x%04x\n", *userData);
+	printf("Resolution  : %s\n", resDisp);
+	printf("Src Voltage : %s\n", battDisp);
+	printf("Chip Heater : %s\n", heatDisp);
+	printf("OTP Reload  : %s\n", otpDisp);
 
 }
 
@@ -244,36 +257,34 @@ void writeData (uint8_t devAddr, uint8_t * wrData, int numWrBytes) {
 
 	// sets the device address
 	if (ioctl(g_i2cFile, I2C_SLAVE, devAddr) < 0) {
-		std::cerr << "ERROR: failed to set the i2c address " << unsigned(devAddr) << std::endl;
+		fprintf(stderr,"ERROR: failed to set the i2c address 0x%02x\n", devAddr);
 		exit(1);
 	}
 
 	// writes to the command address
 	if (write(g_i2cFile, wrData, numWrBytes) != numWrBytes) {
-		std::cerr << "ERROR: i2c write failed" << std::endl;
+		fprintf(stderr,"ERROR: i2c write failed\n");
 	}
-
-	std::this_thread::sleep_for (std::chrono::milliseconds(10));
-
+	
 }
 
 // read data
 uint8_t * readData (int numRdBytes, bool nhm) {
 
 	if (nhm) {
-		std::this_thread::sleep_for (std::chrono::milliseconds(100));
+		sleep(1);
 	}
 
 	uint8_t * tmpData;
 	tmpData = (uint8_t*) malloc(sizeof(uint8_t) * numRdBytes);
 	if (!tmpData) {
-		std::cerr << "ERROR: Failed to allocate output data buffer\n";
+		fprintf(stderr,"ERROR: Failed to allocate output data buffer\n");
 		exit(1);
 	}
 
     // read bytes of data from i2c bus
     if (read(g_i2cFile, tmpData, numRdBytes) != numRdBytes) {
-        std::cerr << "ERROR: Failed to read i2c data\n";
+    	fprintf(stderr,"ERROR: Failed to read i2c data\n");
         exit(1);
     }
 
@@ -306,13 +317,13 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 
 	// error check the number of input arguments
 	if (argc<2 || argc>5) {
-		std::cerr << "ERROR: incorrect number of arguments\n";
+		fprintf(stderr,"ERROR: incorrect number of arguments\n");
 		usage(argv[0]);
 	}
 
 	// initialise flag to allow options
-	bool optFlg1 {false};
-	bool optFlg2 {false};
+	bool optFlg1 = false;
+	bool optFlg2 = false;
 
 	// determines what the command is
 	if (!strcmp(argv[1], "readtemp")) {
@@ -346,7 +357,7 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 	} else if (!strcmp(argv[1], "usage")) {
 		usage(argv[0]);
 	} else {
-		std::cerr << "ERROR: invalid operation\n";
+		fprintf(stderr,"ERROR: invalid operation\n");
 		usage(argv[0]);
 	}
 
@@ -365,7 +376,7 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 			} else if (!strcmp(argv[2], "-c")) {
 				i2cArgs->cont = true;
 			} else {
-				std::cerr << "ERROR: invalid operation\n";
+				fprintf(stderr,"ERROR: invalid operation\n");
 				usage(argv[0]);
 			}
 		}
@@ -381,7 +392,7 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 			} else if (!strcmp(argv[3], "-c")) {
 				i2cArgs->cont = true;
 			} else {
-				std::cerr << "ERROR: invalid operation\n";
+				fprintf(stderr,"ERROR: invalid operation\n");
 				usage(argv[0]);
 			}
 		}
@@ -400,7 +411,7 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 				} else if (!strcmp(argv[3], "4")) {
 					i2cArgs->wData = 0x81;
 				} else {
-					std::cerr << "ERROR: invalid operation\n";
+					fprintf(stderr,"ERROR: invalid operation\n");
 					usage(argv[0]);
 				}
 			} else if (!strcmp(argv[2], "-heat")) {
@@ -410,7 +421,7 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 				} else if (!strcmp(argv[3], "off")) {
 					i2cArgs->wData = 0x0;
 				} else {
-					std::cerr << "ERROR: invalid operation\n";
+					fprintf(stderr,"ERROR: invalid operation\n");
 					usage(argv[0]);
 				}
 			} else if (!strcmp(argv[2], "-otp")) {
@@ -420,15 +431,15 @@ i2cArgs_s * parseArgs (int argc, char ** argv) {
 				} else if (!strcmp(argv[3], "off")) {
 					i2cArgs->wData = 0x2;
 				} else {
-					std::cerr << "ERROR: invalid operation\n";
+					fprintf(stderr,"ERROR: invalid operation\n");
 					usage(argv[0]);
 				}
 			} else {
-				std::cerr << "ERROR: invalid operation\n";
+				fprintf(stderr,"ERROR: invalid operation\n");
 				usage(argv[0]);
 			}
 		} else {
-			std::cerr << "ERROR: incorrect number of arguments\n";
+			fprintf(stderr,"ERROR: invalid operation\n");
 			usage(argv[0]);
 		}
 	}
@@ -447,8 +458,8 @@ int main (int argc, char ** argv) {
 	// open i2c device
 	i2cOpen(i2cArgs->bus);
 
-	bool loopMeas {true};
-	uint8_t newUsrData {};
+	bool loopMeas = true;
+	uint8_t newUsrData;
 	uint8_t * tmpSubAddr = (uint8_t*) malloc(sizeof(uint8_t));
 	uint8_t * fullData = (uint8_t*) malloc(sizeof(uint8_t)*2);
 
@@ -460,10 +471,6 @@ int main (int argc, char ** argv) {
 
 				// temp measurement
 				writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
-				if (i2cArgs->nhm) {
-					// nhm delay
-					std::this_thread::sleep_for (std::chrono::milliseconds(100));
-				}
 				i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 				fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
@@ -479,14 +486,10 @@ int main (int argc, char ** argv) {
 					}
 
 					// delay between measurements
-					std::this_thread::sleep_for (std::chrono::milliseconds(100));
+					sleep(1);
 
 					// rh measurement
 					writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
-					if (i2cArgs->nhm) {
-						// nhm delay
-						std::this_thread::sleep_for (std::chrono::milliseconds(100));
-					}
 					i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 					fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
@@ -501,14 +504,14 @@ int main (int argc, char ** argv) {
 				}
 
 				// create new line for new measurement data
-				std::cout << std::endl;
+				printf("\n");
 
 				// break out of loop if not in continuous mode
 				if (!i2cArgs->cont) {
 					loopMeas = false;
 				} else {
 					// delay between measurements
-					std::this_thread::sleep_for (std::chrono::milliseconds(1000));
+					sleep(1);
 				}
 			}
 			break;
@@ -548,16 +551,13 @@ int main (int argc, char ** argv) {
 			writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
 
 			// delay for 1 second (TODO - this is probably excessive)
-			std::this_thread::sleep_for (std::chrono::milliseconds(1000));
+			sleep(1);
 
 			break;
 
 		default:
 			usage(argv[0]);
 	}
-
-	// print output DEBUG
-	// printOutput(i2cArgs);
 
 	// close i2c bus
 	i2cClose();
