@@ -48,6 +48,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 const int BUS_ADDR = 1;
 const int NB_READ = 3;
@@ -265,15 +266,11 @@ void writeData (uint8_t devAddr, uint8_t * wrData, int numWrBytes) {
 	if (write(g_i2cFile, wrData, numWrBytes) != numWrBytes) {
 		fprintf(stderr,"ERROR: i2c write failed\n");
 	}
-	
+
 }
 
 // read data
 uint8_t * readData (int numRdBytes, bool nhm) {
-
-	if (nhm) {
-		sleep(1);
-	}
 
 	uint8_t * tmpData;
 	tmpData = (uint8_t*) malloc(sizeof(uint8_t) * numRdBytes);
@@ -290,6 +287,19 @@ uint8_t * readData (int numRdBytes, bool nhm) {
 
 	return tmpData;
 
+}
+
+// millisecond sleep function
+void sleepMillisec(uint32_t tSec, uint32_t tMillisec)
+{
+	struct timespec tim, tim2;
+	tim.tv_sec = tSec;
+	tim.tv_nsec = tMillisec * 1000000;
+
+	if(nanosleep(&tim , &tim2) < 0)
+   	{
+    	fprintf(stderr, "ERROR: millisecond sleep system call failed\n");
+   	}
 }
 
 // parse input arguments, output format for i2c
@@ -471,6 +481,7 @@ int main (int argc, char ** argv) {
 
 				// temp measurement
 				writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+				sleepMillisec(0,100);
 				i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 				fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
@@ -486,10 +497,11 @@ int main (int argc, char ** argv) {
 					}
 
 					// delay between measurements
-					sleep(1);
+					sleepMillisec(0,100);
 
 					// rh measurement
 					writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
+					sleepMillisec(0,100);
 					i2cArgs->outData = readData(i2cArgs->numRdBytes, i2cArgs->nhm);
 					fmtDispData(i2cArgs->outData, i2cArgs->meas);
 
@@ -511,7 +523,7 @@ int main (int argc, char ** argv) {
 					loopMeas = false;
 				} else {
 					// delay between measurements
-					sleep(1);
+					sleepMillisec(1,0);
 				}
 			}
 			break;
@@ -550,8 +562,8 @@ int main (int argc, char ** argv) {
 			// toggle reset register
 			writeData(i2cArgs->devAddr, i2cArgs->subAddr, i2cArgs->numWrBytes);
 
-			// delay for 1 second (TODO - this is probably excessive)
-			sleep(1);
+			// delay
+			sleepMillisec(0,500);
 
 			break;
 
